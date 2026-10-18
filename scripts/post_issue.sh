@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates or updates the "Jobs <date>" issue. Comments once when AI scores arrive, so GitHub emails the owner.
+# Creates or updates the "Jobs <date>" issue. Comments when (new) AI scores arrive, so GitHub emails the owner.
 set -euo pipefail
 
 DATE="$1"
@@ -25,7 +25,9 @@ fi
 OLD_BODY=$(gh issue view "$NUMBER" --json body --jq .body)
 gh issue edit "$NUMBER" --body-file "$BODY_FILE"
 
-if ! grep -q "$SCORED_MARK" <<<"$OLD_BODY" && grep -q "$SCORED_MARK" "$BODY_FILE"; then
-  SUMMARY=$(sed -n '2p' "$BODY_FILE")
-  gh issue comment "$NUMBER" --body "Scores are in: $SUMMARY"
+# Line 2 is the summary ("N worth a look out of M…"); a change there means new or more scores
+NEW_SUMMARY=$(sed -n '2p' "$BODY_FILE")
+OLD_SUMMARY=$(sed -n '2p' <<<"$OLD_BODY" | tr -d '\r')
+if grep -q "$SCORED_MARK" "$BODY_FILE" && [ "$NEW_SUMMARY" != "$OLD_SUMMARY" ]; then
+  gh issue comment "$NUMBER" --body "Scores are in: $NEW_SUMMARY"
 fi
