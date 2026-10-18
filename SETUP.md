@@ -48,21 +48,41 @@ push on any branch to `main`, runs a fetch, and writes the result to `data/last-
 with `git fetch`.
 
 ### S1. Which repository are you in?
-Run `git remote get-url origin`.
-- **It's `ramblingpm/job-agent-template` (the template itself)**: you can't set up from here. Tell the user,
-  in these two steps:
-  1. *"Click this link to create your private copy, then click **Create repository**:"*
-     https://github.com/new?owner=@me&template_owner=ramblingpm&template_name=job-agent-template&name=my-job-agent&visibility=private
-  2. *"Then start a new Claude Code session on **my-job-agent** (at claude.ai/code, pick it in the repository
-     list; if it isn't listed, use the option to give Claude access to more repositories), and say **Set me up**."*
+**You lead the whole setup in this one conversation.** The user only does the clicks you ask for. Never end
+with "start a new session" while there's still something you can do here.
 
-  Then stop. Don't run the interview here, because the answers would be lost.
-- **It's the user's own copy:** continue with S2.
+Run `git remote get-url origin` (or check which repositories this session has).
+- **It's the user's own copy** (anything other than `ramblingpm/job-agent-template`): continue with S2.
+- **It's the template itself, or no repository at all**: the user needs a private copy first. Do this, in order,
+  without stopping:
+  1. Tell the user in one short message: *"I'll set everything up. I just need one click from you first.
+     Open this link and click **Create repository** (the name and Private are already filled in):*
+     https://github.com/new?owner=@me&template_owner=ramblingpm&template_name=job-agent-template&name=my-job-agent&visibility=private
+     *While you do that, let's start: what kind of job are you looking for?…"*. Then go straight into
+     **[The interview](#the-interview)**.
+  2. Run the whole interview here. **Keep the answers in the conversation. Never write or commit them to the
+     template**, which is public and isn't the user's.
+  3. Once the interview is done (or the user says the repository is created), **attach `<user>/my-job-agent` to
+     this session** if your environment can add repositories (for example a tool to add or attach a repo, or
+     a session setting). Then clone it (`git clone https://github.com/<user>/my-job-agent`), `cd` into it and
+     continue with S2, step 2.
+     If it doesn't show up, the Claude GitHub app probably can't see it yet. Tell the user: *"Open
+     https://github.com/settings/installations, then Claude → Configure → Repository access, and add
+     **my-job-agent**."* Then try again.
+  4. **Only if you can't attach repositories at all:** finish the setup through the user's browser instead.
+     Give them, one at a time, a link that opens each file in GitHub's editor:
+     `https://github.com/<user>/my-job-agent/edit/main/profile.md`, then the same for `config.yaml`. Give each
+     file's complete new content in one code block to paste over everything, then have them click
+     **Commit changes…** → **Commit changes**. Saving starts the first search automatically. After about two
+     minutes, have them open the **Issues** tab and tell you what they see, then continue with S5. Mention once
+     that next time, starting the session on `my-job-agent` lets you do all of this yourself.
 
 ### S2. Interview and save
-1. Run **[The interview](#the-interview)** below, steps 1–5. Skip the `suggest` and `preview` commands if they fail
+1. Run **[The interview](#the-interview)** below, steps 1–5 (skip it if you already did it in S1). Skip the `suggest` and `preview` commands if they fail
    with network errors; they'll be replaced by the report in S3.
-2. Commit `profile.md` and `config.yaml`, then push to your current branch (`git push -u origin HEAD`).
+2. Commit `profile.md` and `config.yaml`, then push to your current branch (`git push -u origin HEAD`). If the push
+   is refused (sandboxes often block pushes to `main`), create a branch with `git checkout -b claude/setup` and push
+   that. `sync.yml` applies pushes from any branch.
    Remember the output of `python -m jobagent fingerprint`; if Python or the packages aren't available, use
    `sha256sum config.yaml | cut -c1-12`.
 3. Tell the user: *"Saved. GitHub is now running your first search over the last two weeks. That takes about
