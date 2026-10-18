@@ -1,0 +1,73 @@
+name: Fetch jobs
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 07:00 Swedish summer time, 06:00 winter time
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: job-agent-main
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Fetch new ads
+        id: fetch
+        run: |
+          python -m jobagent fetch
+          DATE=$(python -c "from jobagent.config import today; print(today())")
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "has_inbox=$([ -f "data/inbox/$DATE.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit inbox
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || { git commit -m "Fetch jobs ${{ steps.fetch.outputs.date }}" && git push; }
+
+      - name: Open today's issue
+        if: steps.fetch.outputs.has_inbox == 'true'
+        run: bash scripts/post_issue.sh "${{ steps.fetch.outputs.date }}"
+
+      # Optional: automatic scoring with your Claude Pro/Max subscription.
+      # Only runs if you added the CLAUDE_CODE_OAUTH_TOKEN secret (see README, option B).
+      - name: Score with Claude
+        if: steps.fetch.outputs.has_inbox == 'true' && env.HAS_CLAUDE_TOKEN == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            Follow "Task 1" in AGENTS.md to score the pending jobs.
+            Exception: do NOT commit or push. Stop after `python -m jobagent validate` prints ok.
+          claude_args: >-
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(python -m jobagent:*)"
+
+      - name: Publish scores
+        if: steps.fetch.outputs.has_inbox == 'true' && env.HAS_CLAUDE_TOKEN == 'true'
+        run: |
+          DATE="${{ steps.fetch.outputs.date }}"
+          python -m jobagent validate "$DATE"
+          git add data/scored
+          git diff --cached --quiet || { git commit -m "Score jobs $DATE" && git push; }
+          bash scripts/post_issue.sh "$DATE"

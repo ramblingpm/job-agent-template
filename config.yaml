@@ -1,0 +1,49 @@
+# Search settings. Edit these in the GitHub web editor (pencil icon) — no code needed.
+# What you're looking for in a job (seniority, must-haves, deal-breakers) goes in profile.md instead.
+
+search:
+  # Free-text searches against Platsbanken (Arbetsförmedlingen's JobTech API).
+  # Add Swedish and English variants of your title.
+  queries:
+    - "product manager"
+    - "produktchef"
+    - "product owner"
+  # Only fetch ads published in the last N days. Already-seen ads are skipped automatically.
+  published_within_days: 3
+  # Max ads fetched per query (API maximum is 100).
+  max_per_query: 100
+
+location:
+  # Municipality or region names (e.g. "Stockholm", "Göteborg", "Skåne län").
+  # Leave the list empty to search all of Sweden.
+  places:
+    - "Stockholm"
+  # Also keep ads that look remote/distans, wherever they're based.
+  include_remote: true
+
+filters:
+  # Keep an ad only if its title contains at least one of these (case-insensitive).
+  # Leave empty to keep every title.
+  title_must_contain_any:
+    - "product"
+    - "produkt"
+  # Drop an ad if its title contains any of these.
+  title_exclude:
+    - "marketing"
+    - "sales"
+    - "account manager"
+    - "project manager"
+    - "intern"
+    - "praktik"
+  # Words that push an ad up the list before AI scoring (title counts 3x, description 1x).
+  boost_keywords:
+    - "senior"
+    - "saas"
+    - "b2b"
+    - "platform"
+
+digest:
+  # Max jobs shown in each daily issue.
+  max_jobs: 30
+  # Hide AI-scored jobs below this score (0-100) from the main list.
+  min_ai_score: 50
