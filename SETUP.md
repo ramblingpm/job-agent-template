@@ -55,20 +55,26 @@ Run `git remote get-url origin` (or check which repositories this session has).
 - **It's the user's own copy** (anything other than `ramblingpm/job-agent-template`): continue with S2.
 - **It's the template itself, or no repository at all**: the user needs a private copy first. Do this, in order,
   without stopping:
-  1. Tell the user in one short message: *"I'll set everything up. I just need one click from you first.
-     Open this link and click **Create repository** (the name and Private are already filled in):*
+  1. Tell the user in one short message, with both clicks up front:
+     *"I'll set everything up. I need two quick clicks from you first:*
+     *1. Open this link and click **Create repository** (the name and Private are already filled in):*
      https://github.com/new?owner=@me&template_owner=ramblingpm&template_name=job-agent-template&name=my-job-agent&visibility=private
-     *While you do that, let's start: what kind of job are you looking for?…"*. Then go straight into
-     **[The interview](#the-interview)**.
+     *2. Let me see it: open https://github.com/settings/installations, click **Configure** next to **Claude**,
+     and under **Repository access** add **my-job-agent** (or choose **All repositories**), then **Save**.*
+     *While you do that, let's start: what kind of job are you looking for?…"*
+     Then go straight into **[The interview](#the-interview)**.
+     Click 2 is needed because the Claude GitHub app is usually installed for selected repositories only, and
+     GitHub doesn't add new repositories to that list by itself. If the user says Claude isn't listed on that
+     page, the app isn't installed at all. Then click 2 is: open https://claude.ai/code, choose a repository, and
+     follow the prompt to connect GitHub, picking **my-job-agent**.
   2. Run the whole interview here. **Keep the answers in the conversation. Never write or commit them to the
      template**, which is public and isn't the user's.
   3. Once the interview is done (or the user says the repository is created), **attach `<user>/my-job-agent` to
      this session** if your environment can add repositories (for example a tool to add or attach a repo, or
      a session setting). Then clone it (`git clone https://github.com/<user>/my-job-agent`), `cd` into it and
      continue with S2, step 2.
-     If it doesn't show up, the Claude GitHub app probably can't see it yet. Tell the user: *"Open
-     https://github.com/settings/installations, then Claude → Configure → Repository access, and add
-     **my-job-agent**."* Then try again.
+     If it doesn't show up, click 2 probably wasn't saved, or the repository got a different name. Ask which
+     name they used, and have them check the Repository access list again. Then try again.
   4. **Only if you can't attach repositories at all:** finish the setup through the user's browser instead.
      Give them, one at a time, a link that opens each file in GitHub's editor:
      `https://github.com/<user>/my-job-agent/edit/main/profile.md`, then the same for `config.yaml`. Give each
