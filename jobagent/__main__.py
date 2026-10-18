@@ -4,6 +4,7 @@
     python -m jobagent pending             list inbox dates that have no scores yet
     python -m jobagent validate <date>     check data/scored/<date>.json
     python -m jobagent render <date>       print the issue body for that date
+    python -m jobagent preview [days]      dry run: what config.yaml would catch over the last N days (default 14)
 """
 
 import json
@@ -52,6 +53,23 @@ def cmd_fetch():
         print(f"wrote {path.relative_to(c.ROOT)}")
 
 
+def cmd_preview(days="14"):
+    """Dry run for tuning config.yaml: writes nothing, shows what would be kept and dropped."""
+    cfg = c.load_config()
+    cfg["search"]["published_within_days"] = int(days)
+    found = fetch_jobs(cfg, today=c.today())
+    kept = prefilter(found, cfg)
+    kept_ids = {j["id"] for j in kept}
+    dropped = [j for j in found if j["id"] not in kept_ids]
+    print(f"\nLast {days} days: {len(found)} ads found, {len(kept)} kept, {len(dropped)} dropped by filters")
+    print(f"(about {len(kept) / int(days):.1f} new jobs per day)\n\nKEPT:")
+    for j in kept:
+        print(f"  {j['keyword_score']:>3}  {j['title']} — {j['company']} ({j['municipality'] or j['region'] or '?'})")
+    print("\nDROPPED (first 25):")
+    for j in dropped[:25]:
+        print(f"       {j['title']} — {j['company']} ({j['municipality'] or j['region'] or '?'})")
+
+
 def cmd_pending():
     from datetime import date, timedelta
 
@@ -88,10 +106,13 @@ def cmd_render(day):
 
 
 def main(argv):
-    commands = {"fetch": cmd_fetch, "pending": cmd_pending, "validate": cmd_validate, "render": cmd_render}
+    commands = {"fetch": cmd_fetch, "pending": cmd_pending, "validate": cmd_validate, "render": cmd_render,
+                "preview": cmd_preview}
     if not argv or argv[0] not in commands:
         sys.exit(__doc__)
-    if argv[1:] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", argv[1]):
+    if argv[0] == "preview" and argv[1:] and not argv[1].isdigit():
+        sys.exit(f"expected a number of days, got {argv[1]!r}")
+    if argv[0] in ("validate", "render") and argv[1:] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", argv[1]):
         sys.exit(f"expected a date like 2026-10-18, got {argv[1]!r}")
     commands[argv[0]](*argv[1:])
 

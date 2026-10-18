@@ -8,6 +8,10 @@ turns your scores into the daily GitHub Issue.
 These instructions are the same whether you are Claude (Code on the web, a scheduled routine, or the GitHub
 Action) or ChatGPT Codex.
 
+## Task 0: "Set me up" / "get this running"
+
+If the owner wants to create or finish setting up their own copy, follow **`SETUP.md`**. It is a step-by-step runbook.
+
 ## Task 1: "Score today's jobs" (also "run the job search", "score my jobs")
 
 1. Set up: `pip install -r requirements.txt` (skip if already installed).
@@ -78,6 +82,7 @@ pull request. Remind the owner that the repository should stay private.
 
 ## Repository map
 - `profile.md`: who the owner is and what they want. Read it for every scoring run.
+- `SETUP.md`: setup runbook for AI assistants (Task 0).
 - `config.yaml`: search terms, places and title filters used by the fetcher.
 - `data/inbox/<date>.json`: ads fetched that day, already filtered by keyword. Don't edit these.
 - `data/scored/<date>.json`: your output.

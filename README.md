@@ -22,7 +22,22 @@ Even without the AI step, you still get a daily issue with the new ads, ranked b
 
 ---
 
-## Setup (about 10 minutes)
+## ⚡ The easy way: let your AI set it up
+
+Paste this into Claude (Claude Code or claude.ai) or ChatGPT:
+
+```
+Set up my job agent by following SETUP.md in https://github.com/ramblingpm/job-agent-template
+```
+
+It will make your private copy, interview you about what you're looking for, test the search, start the daily
+run and connect AI scoring. It asks you to click or approve something only when it can't do it for you.
+With Claude Code or Codex on your computer it does almost everything itself; in a plain chat it walks you
+through each click.
+
+---
+
+## Setup by hand (about 10 minutes)
 
 ### 1. Make your own copy
 Click **Use this template → Create a new repository** at the top of this page.
