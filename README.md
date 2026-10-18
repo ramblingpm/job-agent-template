@@ -13,8 +13,8 @@ There are no API keys, nothing to pay per run, and nothing to install.
 ```
  every morning (free)             your AI (your subscription)          you
  ┌──────────────────────┐        ┌───────────────────────────┐        ┌─────────────────┐
- │ GitHub Action fetches │  ───▶  │ Claude / Codex scores each │  ───▶  │ GitHub issue +  │
- │ new Platsbanken ads   │        │ ad against profile.md      │        │ email: top jobs │
+ │ GitHub Action fetches│  ───▶  │ Claude / Codex scores each│  ───▶  │ GitHub issue +  │
+ │ new Platsbanken ads  │        │ ad against profile.md     │        │ email: top jobs │
  └──────────────────────┘        └───────────────────────────┘        └─────────────────┘
 ```
 
