@@ -19,8 +19,10 @@ placeholders (text in *(e.g. …)* brackets), follow **`SETUP.md`**. It is a ste
 2. Find the work: `python -m jobagent pending` prints the dates that still need scores, newest last.
    If it prints nothing, say "No unscored jobs right now" and stop. You don't need to do anything else.
 3. Read `profile.md` carefully. It is the only source of truth about what the owner wants.
-4. For each pending date, read `data/inbox/<date>.json` and score **every** job in it (see the rubric below).
-5. Write `data/scored/<date>.json` in exactly this shape:
+4. For each pending date, run `python -m jobagent todo <date>`. It prints the jobs that still need a score
+   (all of them, unless some were scored earlier that day). Score **every** job it lists (see the rubric below).
+5. Write `data/scored/<date>.json` in exactly this shape. **If the file already exists, keep its jobs and add
+   the new ones**; never drop or re-score finished jobs.
 
    ```json
    {

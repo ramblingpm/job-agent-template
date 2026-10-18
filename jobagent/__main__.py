@@ -2,6 +2,7 @@
 
     python -m jobagent fetch [days]        fetch new ads → data/inbox/<today>.json, report → data/last-run.md
     python -m jobagent pending             list inbox dates that have no scores yet
+    python -m jobagent todo <date>         the jobs of that date that still need a score (JSON)
     python -m jobagent validate <date>     check data/scored/<date>.json
     python -m jobagent render <date>       print the issue body for that date
     python -m jobagent preview [days]      dry run: what config.yaml would catch over the last N days (default 14)
@@ -115,14 +116,27 @@ def cmd_suggest(*words):
             print(f"  {term['occurrences']:>5}  {term['value']}  ({term['type']})")
 
 
+def _unscored(day):
+    inbox = _read(c.INBOX / f"{day}.json", {"jobs": []})
+    scored = _read(c.SCORED / f"{day}.json", {"jobs": []})
+    done = {str(j.get("id")) for j in scored.get("jobs", []) if isinstance(j, dict)}
+    return [j for j in inbox["jobs"] if j["id"] not in done]
+
+
 def cmd_pending():
     from datetime import date, timedelta
 
-    # Older unscored days aren't worth an AI run; the keyword-ranked issue already covers them
+    # Older unscored days aren't worth an AI run; the keyword-ranked issue already covers them.
+    # A day counts as pending while any of its jobs lacks a score (later runs can append to the inbox).
     cutoff = (date.fromisoformat(c.today()) - timedelta(days=PENDING_DAYS)).isoformat()
     for path in sorted(c.INBOX.glob("*.json")):
-        if path.stem >= cutoff and not (c.SCORED / path.name).exists():
+        if path.stem >= cutoff and _unscored(path.stem):
             print(path.stem)
+
+
+def cmd_todo(day):
+    """The jobs of one day that still need a score, so an AI doesn't re-read or re-score finished ones."""
+    print(json.dumps(_unscored(day), ensure_ascii=False, indent=2))
 
 
 def cmd_validate(day):
@@ -152,12 +166,13 @@ def cmd_render(day):
 
 def main(argv):
     commands = {"fetch": cmd_fetch, "pending": cmd_pending, "validate": cmd_validate, "render": cmd_render,
-                "preview": cmd_preview, "suggest": cmd_suggest, "fingerprint": cmd_fingerprint}
+                "preview": cmd_preview, "suggest": cmd_suggest, "fingerprint": cmd_fingerprint,
+                "todo": cmd_todo}
     if not argv or argv[0] not in commands:
         sys.exit(__doc__)
     if argv[0] in ("preview", "fetch") and argv[1:] and not argv[1].isdigit():
         sys.exit(f"expected a number of days, got {argv[1]!r}")
-    if argv[0] in ("validate", "render") and argv[1:] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", argv[1]):
+    if argv[0] in ("validate", "render", "todo") and argv[1:] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", argv[1]):
         sys.exit(f"expected a date like 2026-10-18, got {argv[1]!r}")
     commands[argv[0]](*argv[1:])
 

@@ -124,3 +124,20 @@ def test_run_report_counts_and_lists(cfg, jobs):
     assert report.startswith(f"Last 14 days: {len(jobs)} ads found, {len(kept)} kept, {len(jobs) - len(kept)} dropped")
     assert "Senior Product Manager — Exempel AB (Stockholm)" in report.split("DROPPED")[0]
     assert "Product Marketing Manager" in report.split("DROPPED")[1]
+
+
+def test_partially_scored_day_stays_pending(tmp_path, monkeypatch, cfg, jobs):
+    import jobagent.__main__ as cli
+    from jobagent import config as c
+
+    monkeypatch.setattr(c, "INBOX", tmp_path / "inbox")
+    monkeypatch.setattr(c, "SCORED", tmp_path / "scored")
+    monkeypatch.setattr(c, "today", lambda: "2026-10-18")
+    inbox = _inbox(cfg, jobs)
+    cli._write(c.INBOX / "2026-10-18.json", inbox)
+    cli._write(c.SCORED / "2026-10-18.json", _scored())  # only job 1001 scored
+    remaining = {j["id"] for j in cli._unscored("2026-10-18")}
+    assert remaining == {j["id"] for j in inbox["jobs"]} - {"1001"}
+    cli._write(c.SCORED / "2026-10-18.json", {**_scored(), "jobs": [
+        {**_scored()["jobs"][0], "id": j["id"]} for j in inbox["jobs"]]})
+    assert cli._unscored("2026-10-18") == []
