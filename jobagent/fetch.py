@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import requests
 
 API_URL = "https://jobsearch.api.jobtechdev.se/search"
+COMPLETE_URL = "https://jobsearch.api.jobtechdev.se/complete"
 DESCRIPTION_CHARS = 1500
 
 
@@ -54,3 +55,12 @@ def fetch_jobs(cfg, session=None, today=None):
             job = normalize(hit)
             jobs.setdefault(job["id"], job)
     return list(jobs.values())
+
+
+def suggest_terms(word, session=None, limit=15):
+    """Typeahead from JobTech: occupation and skill words as they appear in current ads, with counts."""
+    session = session or requests.Session()
+    response = session.get(COMPLETE_URL, params={"q": word, "limit": limit}, headers={"accept": "application/json"}, timeout=30)
+    response.raise_for_status()
+    terms = response.json().get("typeahead", [])
+    return [t for t in terms if t.get("type") in ("occupation", "skill")]

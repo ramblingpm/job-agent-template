@@ -53,14 +53,18 @@ Score each job on how well it fits **this person**, based on `profile.md`:
 
 | Score | Meaning | Recommendation |
 |---|---|---|
-| 85–100 | Clearly matches role, seniority, location/work mode and must-haves | `apply` |
+| 85–100 | Right occupation and level, fits location and work arrangement, meets must-haves, and hits several "great match" signals | `apply` |
 | 65–84 | Good fit with a gap or two worth checking | `apply` or `maybe` |
 | 45–64 | Plausible but significant mismatches | `maybe` |
 | 0–44 | Wrong role, wrong level, or hits a deal-breaker | `skip` |
 
 - A deal-breaker from `profile.md` caps the score at 30.
-- Judge the role from the description, not just the title. A "Product Manager" that is really sales or
-  project management is a mismatch if the profile says so.
+- If the ad requires a licence or certificate the profile doesn't list (for example legitimation, behörighet or
+  a C driving licence), cap the score at 40 and add it as a concern.
+- The **"What makes a great match"** section matters most when you're choosing between otherwise similar ads;
+  mention the signals you found in `reasoning`.
+- Judge the role from the description, not just the title. Titles are often misleading: a "developer" ad can be
+  sales, and a "nurse" ad can be an admin role. If the work itself doesn't match the profile, score it low.
 - If the location doesn't fit and the ad gives no sign of remote or hybrid work, apply the profile's stated
   preference.
 - Be honest and calibrated. A typical day has a few strong matches, not many.
@@ -74,8 +78,9 @@ file other than `data/scored/`, except when the owner asks you to (see Task 2).
 
 ## Task 2: "Help me set up my profile" (also "update my profile", "change my search")
 
-Interview the owner using **"The interview" in `SETUP.md`**: one question per message, with clickable options
-when your interface supports them. For a small change ("add Göteborg"), ask only what's needed. Then update `profile.md`
+Interview the owner using **"The interview" in `SETUP.md`**: figure out the occupation, then ask one adaptive
+question per message, with clickable options when your interface supports them. For a small change
+("add Göteborg"), ask only what's needed. Then update `profile.md`
 (what they want) and `config.yaml` (search terms, places, title filters). Keep the existing structure and the
 comments in `config.yaml`. Show the changes, then commit with the message `Update profile` and push, or open a
 pull request. Remind the owner that the repository should stay private.

@@ -1,32 +1,33 @@
 # My job profile
 
-> The AI reads this file to score every job ad. Replace the example text with your own.
-> Tip: paste your CV into Claude or ChatGPT and ask it to fill in this template for you.
-> Keep your repository **private** — this file is about you.
+> The AI reads this file to score every job ad. The easiest way to fill it in is to ask your AI
+> **"Help me set up my profile"**: it interviews you and writes this for you. Or replace the example text yourself.
+> Keep your repository **private**, because this file is about you.
 
 ## What I'm looking for
-- **Roles:** Senior Product Manager, Product Owner, Head of Product
-- **Seniority:** Senior / lead (8+ years experience). Not junior.
-- **Domains I'm drawn to:** B2B SaaS, fintech, developer tools
-- **Company type:** Scale-ups and mid-size product companies. Consultancies only if the assignment is long-term.
+- **Occupation / titles:** *(e.g. Sjuksköterska / Nurse, Systemutvecklare / Software Developer, Elektriker)*
+- **Level:** *(e.g. experienced, senior, specialist, team lead)*
+- **Field / industry:** *(e.g. healthcare, fintech, construction, public sector)*
 
 ## Where and how
-- **Location:** Stockholm, or remote within Sweden
-- **Work mode:** Hybrid or remote preferred; fully on-site is a minus, not a deal-breaker
-- **Languages:** Swedish and English
+- **Location:** *(e.g. Stockholm and Uppsala, or remote within Sweden)*
+- **Work arrangement:** *(e.g. hybrid, days only, no night shifts, full-time, little travel)*
+- **Languages:** *(e.g. Swedish and English)*
+
+## What makes a great match
+*The things that make you say yes to one ad and no to another. These are specific to your field.*
+- *(e.g. Python/backend work rather than frontend)*
+- *(e.g. emergency or intensive care rather than elderly care)*
+- *(e.g. small teams, modern equipment, clear career path)*
 
 ## Must-haves
-- Owns a product area end to end (not just backlog administration)
-- Permanent position (tillsvidareanställning)
+- *(e.g. permanent position, i.e. tillsvidareanställning)*
 
-## Nice-to-haves
-- Data-heavy or platform products
-- Small, cross-functional teams
+## Licences and requirements I meet
+- *(e.g. sjuksköterskelegitimation, B driving licence, elbehörighet)*
 
 ## Deal-breakers
-- Marketing, sales or project-management roles with "product" in the title
-- Pure consulting/staffing ads without a named end client
+- *(e.g. staffing agencies, temporary contracts, night shifts, a commute over 1 hour)*
 
 ## About me (short CV)
-Product manager with 10 years in B2B SaaS. Led discovery and delivery for a payments platform
-(3 teams, 25 engineers). Background in UX and analytics. Comfortable with SQL and experimentation.
+*(Three to five sentences on your experience and strengths.)*

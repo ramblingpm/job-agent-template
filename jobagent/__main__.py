@@ -5,6 +5,7 @@
     python -m jobagent validate <date>     check data/scored/<date>.json
     python -m jobagent render <date>       print the issue body for that date
     python -m jobagent preview [days]      dry run: what config.yaml would catch over the last N days (default 14)
+    python -m jobagent suggest <word>...   real occupation/skill terms used in Platsbanken ads (for search terms)
 """
 
 import json
@@ -13,7 +14,7 @@ import sys
 
 from . import config as c
 from .digest import render_scored, render_unscored
-from .fetch import fetch_jobs
+from .fetch import fetch_jobs, suggest_terms
 from .prefilter import prefilter
 from .schema import validate_scored
 
@@ -70,6 +71,16 @@ def cmd_preview(days="14"):
         print(f"       {j['title']} — {j['company']} ({j['municipality'] or j['region'] or '?'})")
 
 
+def cmd_suggest(*words):
+    """Helps an AI pick search terms that actually occur in Swedish ads, for any occupation."""
+    if not words:
+        sys.exit("usage: python -m jobagent suggest <word> [<word>...]")
+    for word in words:
+        print(f"\n{word}:")
+        for term in suggest_terms(word):
+            print(f"  {term['occurrences']:>5}  {term['value']}  ({term['type']})")
+
+
 def cmd_pending():
     from datetime import date, timedelta
 
@@ -107,7 +118,7 @@ def cmd_render(day):
 
 def main(argv):
     commands = {"fetch": cmd_fetch, "pending": cmd_pending, "validate": cmd_validate, "render": cmd_render,
-                "preview": cmd_preview}
+                "preview": cmd_preview, "suggest": cmd_suggest}
     if not argv or argv[0] not in commands:
         sys.exit(__doc__)
     if argv[0] == "preview" and argv[1:] and not argv[1].isdigit():

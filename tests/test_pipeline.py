@@ -91,3 +91,26 @@ def test_digests_render_and_neutralize_hostile_ads(cfg, jobs):
 
 def test_safe_escapes_markdown_links():
     assert "](" not in safe("[click](https://evil.example)").replace("\\]", "")
+
+
+def test_suggest_keeps_only_occupation_and_skill_terms():
+    from jobagent.fetch import suggest_terms
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"typeahead": [
+                {"value": "sjuksköterska", "type": "occupation", "occurrences": 2050},
+                {"value": "sjuksköterskelegitimation", "type": "skill", "occurrences": 42},
+                {"value": "stockholm", "type": "location", "occurrences": 9000},
+            ]}
+
+    class FakeSession:
+        def get(self, url, params, **kwargs):
+            assert params["q"] == "sjuksköt"
+            return FakeResponse()
+
+    assert [t["value"] for t in suggest_terms("sjuksköt", session=FakeSession())] == [
+        "sjuksköterska", "sjuksköterskelegitimation"]

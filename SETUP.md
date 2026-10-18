@@ -89,9 +89,8 @@ cd <name>
 Confirm it's private: `gh repo view --json visibility --jq .visibility` should print `PRIVATE`.
 
 ### A3. Profile interview
-Follow **[The interview](#the-interview)** below. Then rewrite `profile.md` from the answers, in the user's language
-and keeping its headings, and update `config.yaml`: `search.queries` (3–6 queries), `location.places`,
-`filters.title_must_contain_any`, `filters.title_exclude` and `filters.boost_keywords`. Keep the comments.
+Follow **[The interview](#the-interview)** below, including step 5 (writing the files). Keep the comments in
+`config.yaml`.
 
 ### A4. Tune the search with a dry run
 ```bash
@@ -169,70 +168,74 @@ update `config.yaml` with them.
 
 ## The interview
 
-**One question per message.** Never send a list of questions; wait for each answer before asking the next.
-If you have a tool that shows clickable choices (for example `AskUserQuestion` in Claude Code, or the option
-buttons in the Claude and ChatGPT apps), **use it for every question that has options below**, and allow free
-text too. Without such a tool, write the options as a short numbered list, so the user can just reply "2".
-Keep each message to one or two lines, plus the options.
+**Goal:** work out what kind of job this person is after (it can be anything: nurse, electrician, teacher,
+developer, accountant…), understand what makes a job a good or bad match **for them**, and turn that into
+`profile.md` and `config.yaml`. Don't assume any field.
 
-Adapt the suggested options to earlier answers. For example, if the user picks "Engineering", offer engineering
-roles in Q2. Skip any question the user has already answered.
+**How to ask**
+- **One question per message.** Never send a list of questions. Wait for each answer before asking the next.
+- If you have a tool that shows clickable choices (for example `AskUserQuestion` in Claude Code, or the option
+  buttons in the Claude and ChatGPT apps), **offer 3–6 options you generate for this person**, plus free text.
+  Without such a tool, write the options as a short numbered list, so the user can just reply "2".
+- Keep each message to one or two lines, plus the options. Skip anything you can already infer, and never ask
+  for something the CV already says.
 
-| # | Question | Suggested options (multi-select where it makes sense) |
-|---|---|---|
-| Q1 | "What kind of work are you looking for?" | Product · Software engineering · QA / Testing · Design/UX · Data/Analytics · Other (type it) |
-| Q2 | "Which titles fit you best?" | Use the title list for the Q1 area under [Starter presets](#starter-presets). For other areas, offer three to six concrete titles in English and Swedish · Other |
-| Q3 | "What level?" | Junior · Mid-level · Senior · Lead/Principal · Manager/Head of · Director+ |
-| Q4 | "Where can you work?" | Stockholm · Göteborg · Malmö · Uppsala · Remote anywhere in Sweden · Other city (type it) |
-| Q5 | "How do you feel about office time?" | Remote only · Hybrid is great · On-site is fine · No preference |
-| Q6 | "Any must-haves?" | Permanent position (tillsvidare) · Full-time · English-speaking workplace · Salary above a level (type it) · None |
-| Q7 | "Any deal-breakers?" | Consulting/staffing firms · Public sector · Travel-heavy roles · Fixed-term/temporary · Specific industries (type them) · None |
-| Q8 | "Anything you'd love to have?" | Industries you're drawn to (type them) · Small company/startup · Large established company · Tech-heavy product · None |
-| Q9 | "Last one: paste your CV or LinkedIn summary, or describe your background in a few sentences." | Free text only. Offer "Skip for now". |
+### Step 1: Open question
+Ask: *"What kind of job are you looking for? Describe it in your own words, or paste your CV or LinkedIn
+profile and I'll work it out."* No options here; this is free text.
 
-After Q9, build `config.yaml` from the matching **starter preset** below, narrowed to what the user picked.
-For example, if they only picked backend titles, drop the frontend queries. Then show a **short summary** (five lines at most) of what you'll save, and ask "Look right?" with the
-options **Yes, save it** and **Change something**.
+### Step 2: Form a hypothesis and confirm it
+From the answer, work out the occupation (or two or three closely related ones), the likely seniority and the
+field or industry. Then confirm in one question with clickable options, for example:
+*"Sounds like you're an experienced **[occupation]**. Which of these titles would you apply for?"*, offering
+4–6 concrete titles in **Swedish and English**, as they appear in Swedish ads. Use multi-select if possible.
+If you're unsure between two readings, make each one an option.
 
-### Starter presets
-Tested against Platsbanken. Each preset finds several relevant ads a week in the Stockholm area. Copy the
-matching block into `config.yaml` (replacing the `search.queries` list and the `filters` section), set
-`location.places` from Q4, and add the user's own words to `boost_keywords` (for example "senior", "python" or
-"fintech"). If the user picked several areas, merge the lists.
+**If you can run commands**, check your title words against real ads before offering them:
+`python -m jobagent suggest <word-stem>` (for example `suggest sjuksköt`, `suggest testa`, `suggest redovis`)
+lists the occupation terms Swedish ads actually use, with counts. Prefer terms with high counts.
 
-**Product** (titles to offer in Q2: Product Manager · Produktchef · Product Owner · Produktägare ·
-Head of Product · Product Lead). This is what `config.yaml` ships with.
+### Step 3: Fill the gaps, adapted to the field
+Ask only what's still unknown, one question each, and generate options that fit **this** occupation:
+1. **Level:** for example *Junior · Experienced · Senior · Lead · Manager*. Use the field's own terms; for a
+   nurse that might be *Grundutbildad · Specialistsjuksköterska · Chef*.
+2. **Where:** cities or regions that make sense given their answers, plus *Remote anywhere in Sweden* and
+   *All of Sweden*.
+3. **Work arrangement:** whatever matters in this field: remote/hybrid/on-site for office jobs; day/evening/
+   night shifts for care, retail and industry; travel or field work; full-time or part-time.
+4. **What makes a job a great match:** 2–3 *field-specific* signals. Ask yourself *"what would make this
+   person say yes to one ad and no to another?"* For example: tech stack for developers, ward or specialty for
+   nurses, residential vs. industrial work for electricians, grade levels and subjects for teachers, or
+   industry and company size for many office roles.
+5. **Requirements they meet or need:** licences and certificates common in the field (legitimation,
+   behörighet, driving licence B/C, security clearance), plus languages.
+6. **Deal-breakers:** options typical for the field (for example *Staffing/consulting agencies · Temporary
+   contracts · Night shifts · Long commute · Specific employers or industries*), plus *None*.
 
-**Software engineering** (titles to offer in Q2: Systemutvecklare / Software Developer ·
-Backend Developer · Frontend Developer · Fullstack Developer · DevOps / Platform Engineer · Tech Lead)
-```yaml
-search:
-  queries: ["systemutvecklare", "mjukvaruutvecklare", "software engineer", "software developer",
-            "backend", "frontend", "fullstack", "devops"]
-filters:
-  title_must_contain_any: ["utvecklare", "developer", "engineer", "ingenjör", "devops", "architect",
-                           "arkitekt", "tech lead", "programmer"]
-  title_exclude: ["sales", "säljare", "support", "praktik", "intern", "lärare", "test", "qa"]
-  boost_keywords: []
-```
+Usually 5–8 questions in total are enough. Stop asking once you could explain to a friend which ads this person
+would and wouldn't want.
 
-**QA / Testing** (titles to offer in Q2: QA Engineer · Testare / Software Tester · Testledare / Test Manager ·
-Testautomatiserare / Test Automation Engineer · QA Lead)
-```yaml
-search:
-  queries: ["testare", "test engineer", "testledare", "testautomatisering", "QA engineer",
-            "quality assurance", "mjukvarutestare"]
-filters:
-  title_must_contain_any: ["test", "qa", "quality", "kvalitet"]
-  title_exclude: ["sales", "säljare", "praktik", "intern", "eltestare", "testoperatör", "elektronik",
-                  "hårdvara", "provtag", "laboratorie", "körskol"]
-  boost_keywords: []
-```
-In the engineering preset, `test` and `qa` are excluded so that QA roles don't flood it. **If the user picked
-both engineering and QA, remove those two words** from `title_exclude`. If the user wants hardware or embedded
-testing, remove `elektronik` and `hårdvara`.
+### Step 4: Confirm
+Show a summary of at most five lines (titles, level, where, the top match signals, deal-breakers) and ask
+*"Look right?"* with the options **Yes, save it** and **Change something**.
 
----
+### Step 5: Write the files
+- **`profile.md`:** fill in every section, in the user's language. Put the field-specific signals from
+  step 3.4 under *"What makes a great match"*; that section is what the scoring AI uses most.
+- **`config.yaml`:** this is only the coarse net. The AI scoring does the fine matching, so the net should be a
+  bit too wide rather than too narrow.
+  - `search.queries`: 3–8 searches covering Swedish and English titles, plural forms, and common synonyms
+    (for example `"sjuksköterska", "specialistsjuksköterska", "nurse"`).
+  - `filters.title_must_contain_any`: short word stems that any relevant title contains (for example `"sjuksköt"`,
+    `"nurse"`). If titles in this field vary too much to name, leave it empty.
+  - `filters.title_exclude`: obvious neighbouring roles that share a word but aren't wanted (for example
+    `"test"` for a developer who doesn't want QA work, or `"chef"` for someone who doesn't want to manage).
+  - `filters.boost_keywords`: the field-specific match signals (for example `"python"`, `"akutsjukvård"`,
+    `"senior"`).
+  - `location.places`: from step 3.2. Leave it empty for all of Sweden.
+- **If you can run commands, test it** with `python -m jobagent preview 14` (see A4). Aim for roughly 1–5 kept
+  ads a day. Look at the kept and dropped titles, and adjust until the kept ones look right and nothing obviously
+  relevant was dropped.
 
 ## Phase C: daily AI scoring
 
