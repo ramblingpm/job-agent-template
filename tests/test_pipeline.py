@@ -141,3 +141,27 @@ def test_partially_scored_day_stays_pending(tmp_path, monkeypatch, cfg, jobs):
     cli._write(c.SCORED / "2026-10-18.json", {**_scored(), "jobs": [
         {**_scored()["jobs"][0], "id": j["id"]} for j in inbox["jobs"]]})
     assert cli._unscored("2026-10-18") == []
+
+
+def test_broadened_config_picks_up_previously_dropped_ads(tmp_path, monkeypatch, cfg, jobs):
+    import jobagent.__main__ as cli
+    from jobagent import config as c
+
+    for name in ("DATA", "INBOX", "SCORED"):
+        monkeypatch.setattr(c, name, tmp_path / name.lower())
+    monkeypatch.setattr(c, "SEEN", tmp_path / "seen.json")
+    monkeypatch.setattr(c, "ROOT", tmp_path)
+    (tmp_path / "config.yaml").write_text("search: {queries: [x]}\n")
+    monkeypatch.setattr(c, "today", lambda: "2026-10-18")
+    monkeypatch.setattr(cli, "fetch_jobs", lambda cfg, today: jobs)
+    narrow = {**cfg, "location": {"places": ["Stockholm"], "include_remote": False}}
+    monkeypatch.setattr(c, "load_config", lambda: narrow)
+    cli.cmd_fetch()
+    first = {j["id"] for j in cli._read(c.INBOX / "2026-10-18.json")["jobs"]}
+    assert "1004" not in first  # Göteborg dropped by the narrow config
+
+    monkeypatch.setattr(c, "load_config", lambda: {**cfg, "location": {"places": [], "include_remote": True}})
+    cli.cmd_fetch()
+    ids = [j["id"] for j in cli._read(c.INBOX / "2026-10-18.json")["jobs"]]
+    assert "1004" in ids and len(ids) == len(set(ids))  # picked up now, nothing duplicated
+    assert "New this run: 1 kept" in (c.DATA / "last-run.md").read_text()

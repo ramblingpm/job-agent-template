@@ -74,16 +74,19 @@ def cmd_fetch(days=None):
     kept = prefilter(fresh, cfg)
     print(f"{len(fresh)} unseen ads, {len(kept)} kept after filters")
 
-    # Remember everything we looked at, so filtered-out ads don't come back tomorrow either
-    for job in fresh:
+    # Remember only what we kept: filtered-out ads get re-checked, so a broadened config can still pick them up
+    for job in kept:
         seen[job["id"]] = day
     cutoff = (date.fromisoformat(day) - timedelta(days=SEEN_RETENTION_DAYS)).isoformat()
     _write(c.SEEN, {k: v for k, v in sorted(seen.items()) if v >= cutoff})
 
+    # The report judges the config against everything fetched (seen or not), so it stays useful while tuning
     now = datetime.now(ZoneInfo("Europe/Stockholm")).isoformat(timespec="seconds")
-    report = run_report(fresh, kept, cfg["search"]["published_within_days"])
+    c.DATA.mkdir(parents=True, exist_ok=True)
+    report = run_report(found, prefilter(found, cfg), cfg["search"]["published_within_days"])
     (c.DATA / "last-run.md").write_text(
-        f"Run: {now}\nConfig: {config_fingerprint()}\n(only ads not seen in earlier runs are counted)\n\n{report}",
+        f"Run: {now}\nConfig: {config_fingerprint()}\n"
+        f"New this run: {len(kept)} kept job(s) not seen before were added to today's issue\n\n{report}",
         encoding="utf-8")
 
     if kept:

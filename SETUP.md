@@ -97,7 +97,8 @@ Wait for the report: repeat `git fetch -q origin main && git show origin/main:da
   jobs, about 1 a day: [3–5 example titles]. It skipped things like [2–3 dropped titles]."* Ask whether that
   looks right, with the options **Looks good** and **Adjust the search**. To adjust, edit `config.yaml` (see
   the interview's step 5), push, and wait for the new fingerprint again.
-  Tuning doesn't fetch the same ads again: each run only counts ads it hasn't seen before.
+  Each report judges the current settings against all ads from the last 14 days. Jobs that a new setting
+  picks up get added to today's issue (the `New this run:` line); jobs already in it aren't added twice.
 - **No matching report after 6 minutes**: tell the user to open the **Actions** tab of their repository and check
   whether **Sync from AI** shows a red ✗. The usual fix: **Settings → Actions → General → Workflow permissions →
   Read and write permissions → Save**, then ask you to push again.
