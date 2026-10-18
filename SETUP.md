@@ -180,8 +180,8 @@ roles in Q2. Skip any question the user has already answered.
 
 | # | Question | Suggested options (multi-select where it makes sense) |
 |---|---|---|
-| Q1 | "What kind of work are you looking for?" | Product · Engineering · Design/UX · Data/Analytics · Marketing · Sales · Operations/Project management · Other (type it) |
-| Q2 | "Which titles fit you best?" | Three to six concrete titles for the Q1 area, in English and Swedish (e.g. Product Manager, Produktchef, Product Owner, Produktägare, Head of Product) · Other |
+| Q1 | "What kind of work are you looking for?" | Product · Software engineering · QA / Testing · Design/UX · Data/Analytics · Other (type it) |
+| Q2 | "Which titles fit you best?" | Use the title list for the Q1 area under [Starter presets](#starter-presets). For other areas, offer three to six concrete titles in English and Swedish · Other |
 | Q3 | "What level?" | Junior · Mid-level · Senior · Lead/Principal · Manager/Head of · Director+ |
 | Q4 | "Where can you work?" | Stockholm · Göteborg · Malmö · Uppsala · Remote anywhere in Sweden · Other city (type it) |
 | Q5 | "How do you feel about office time?" | Remote only · Hybrid is great · On-site is fine · No preference |
@@ -190,8 +190,47 @@ roles in Q2. Skip any question the user has already answered.
 | Q8 | "Anything you'd love to have?" | Industries you're drawn to (type them) · Small company/startup · Large established company · Tech-heavy product · None |
 | Q9 | "Last one: paste your CV or LinkedIn summary, or describe your background in a few sentences." | Free text only. Offer "Skip for now". |
 
-After Q9, show a **short summary** (five lines at most) of what you'll save, and ask "Look right?" with the
+After Q9, build `config.yaml` from the matching **starter preset** below, narrowed to what the user picked.
+For example, if they only picked backend titles, drop the frontend queries. Then show a **short summary** (five lines at most) of what you'll save, and ask "Look right?" with the
 options **Yes, save it** and **Change something**.
+
+### Starter presets
+Tested against Platsbanken. Each preset finds several relevant ads a week in the Stockholm area. Copy the
+matching block into `config.yaml` (replacing the `search.queries` list and the `filters` section), set
+`location.places` from Q4, and add the user's own words to `boost_keywords` (for example "senior", "python" or
+"fintech"). If the user picked several areas, merge the lists.
+
+**Product** (titles to offer in Q2: Product Manager · Produktchef · Product Owner · Produktägare ·
+Head of Product · Product Lead). This is what `config.yaml` ships with.
+
+**Software engineering** (titles to offer in Q2: Systemutvecklare / Software Developer ·
+Backend Developer · Frontend Developer · Fullstack Developer · DevOps / Platform Engineer · Tech Lead)
+```yaml
+search:
+  queries: ["systemutvecklare", "mjukvaruutvecklare", "software engineer", "software developer",
+            "backend", "frontend", "fullstack", "devops"]
+filters:
+  title_must_contain_any: ["utvecklare", "developer", "engineer", "ingenjör", "devops", "architect",
+                           "arkitekt", "tech lead", "programmer"]
+  title_exclude: ["sales", "säljare", "support", "praktik", "intern", "lärare", "test", "qa"]
+  boost_keywords: []
+```
+
+**QA / Testing** (titles to offer in Q2: QA Engineer · Testare / Software Tester · Testledare / Test Manager ·
+Testautomatiserare / Test Automation Engineer · QA Lead)
+```yaml
+search:
+  queries: ["testare", "test engineer", "testledare", "testautomatisering", "QA engineer",
+            "quality assurance", "mjukvarutestare"]
+filters:
+  title_must_contain_any: ["test", "qa", "quality", "kvalitet"]
+  title_exclude: ["sales", "säljare", "praktik", "intern", "eltestare", "testoperatör", "elektronik",
+                  "hårdvara", "provtag", "laboratorie", "körskol"]
+  boost_keywords: []
+```
+In the engineering preset, `test` and `qa` are excluded so that QA roles don't flood it. **If the user picked
+both engineering and QA, remove those two words** from `title_exclude`. If the user wants hardware or embedded
+testing, remove `elektronik` and `hårdvara`.
 
 ---
 
