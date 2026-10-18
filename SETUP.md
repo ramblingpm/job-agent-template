@@ -105,7 +105,8 @@ gh workflow run "Fetch jobs"
 Wait about 10 seconds, then watch it:
 `gh run watch $(gh run list --workflow fetch.yml --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status`
 
-Then check the result with `gh issue list --label jobs`.
+Then check the result with `gh api "repos/<user>/<name>/issues?labels=jobs" --jq '.[].html_url'`.
+If it's empty, wait 15 seconds and try once more: new issues sometimes take a moment to appear.
 - **There's an issue**: it's working. Then `git pull` to get the fetched inbox.
 - **The run succeeded but there's no issue**: no new jobs matched today. That's fine, and it will run again
   tomorrow at 07:00.
@@ -115,7 +116,7 @@ Then check the result with `gh issue list --label jobs`.
 
 ### A6. First scoring (shows the user the payoff)
 Run `git pull`, then do **Task 1 in `AGENTS.md`** yourself and push the result. About a minute later the issue
-updates with AI scores. Show the user the link: `gh issue list --label jobs --json url --jq '.[0].url'`.
+updates with AI scores and gets a "Scores are in" comment. Show the user the issue link from A5.
 
 ### A7. Daily scoring: go to Phase C.
 
