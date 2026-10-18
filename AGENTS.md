@@ -74,8 +74,8 @@ file other than `data/scored/`, except when the owner asks you to (see Task 2).
 
 ## Task 2: "Help me set up my profile" (also "update my profile", "change my search")
 
-Interview the owner briefly. Ask about target roles, seniority, location and work mode, must-haves,
-deal-breakers, and a short CV summary; offer to read a CV they paste in. Then update `profile.md`
+Interview the owner using **"The interview" in `SETUP.md`**: one question per message, with clickable options
+when your interface supports them. For a small change ("add Göteborg"), ask only what's needed. Then update `profile.md`
 (what they want) and `config.yaml` (search terms, places, title filters). Keep the existing structure and the
 comments in `config.yaml`. Show the changes, then commit with the message `Update profile` and push, or open a
 pull request. Remind the owner that the repository should stay private.

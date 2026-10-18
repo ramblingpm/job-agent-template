@@ -89,16 +89,9 @@ cd <name>
 Confirm it's private: `gh repo view --json visibility --jq .visibility` should print `PRIVATE`.
 
 ### A3. Profile interview
-Read `AGENTS.md` (Task 2) and `profile.md`. Then interview the user conversationally, a few questions at a time:
-- Which roles or titles are they after? Ask for Swedish and English variants, such as "produktchef" and "product manager".
-- What seniority? Where are they willing to work, and how do they feel about remote, hybrid and on-site?
-- Must-haves, nice-to-haves and deal-breakers.
-- A short background. Offer: *"You can paste your CV or LinkedIn summary, or point me to the file, and I'll
-  summarize it."*
-
-Rewrite `profile.md` in the user's language, keeping its headings. Update `config.yaml`:
-`search.queries` (3–6 queries), `location.places`, `filters.title_must_contain_any`, `filters.title_exclude`
-and `filters.boost_keywords`. Keep the comments.
+Follow **[The interview](#the-interview)** below. Then rewrite `profile.md` from the answers, in the user's language
+and keeping its headings, and update `config.yaml`: `search.queries` (3–6 queries), `location.places`,
+`filters.title_must_contain_any`, `filters.title_exclude` and `filters.boost_keywords`. Keep the comments.
 
 ### A4. Tune the search with a dry run
 ```bash
@@ -158,7 +151,7 @@ Give the user **one step at a time** and wait until they say it's done. Use exac
    **Use this template → Create a new repository**. Name it `my-job-agent`, choose **Private**, and click
    **Create repository**. If they don't have a GitHub account, have them create a free one at
    https://github.com/signup first.
-2. **Profile interview.** Interview them as described in A3. Then produce the **complete** new contents of
+2. **Profile interview.** Follow **[The interview](#the-interview)** below. Then produce the **complete** new contents of
    `profile.md`, and separately of `config.yaml`, each in a single code block.
 3. **Paste them in.** In their repository, click `profile.md` → ✏️ (Edit) → select all → paste →
    **Commit changes…** → **Commit changes**. Then do the same for `config.yaml`.
@@ -174,9 +167,38 @@ update `config.yaml` with them.
 
 ---
 
+## The interview
+
+**One question per message.** Never send a list of questions; wait for each answer before asking the next.
+If you have a tool that shows clickable choices (for example `AskUserQuestion` in Claude Code, or the option
+buttons in the Claude and ChatGPT apps), **use it for every question that has options below**, and allow free
+text too. Without such a tool, write the options as a short numbered list, so the user can just reply "2".
+Keep each message to one or two lines, plus the options.
+
+Adapt the suggested options to earlier answers. For example, if the user picks "Engineering", offer engineering
+roles in Q2. Skip any question the user has already answered.
+
+| # | Question | Suggested options (multi-select where it makes sense) |
+|---|---|---|
+| Q1 | "What kind of work are you looking for?" | Product · Engineering · Design/UX · Data/Analytics · Marketing · Sales · Operations/Project management · Other (type it) |
+| Q2 | "Which titles fit you best?" | Three to six concrete titles for the Q1 area, in English and Swedish (e.g. Product Manager, Produktchef, Product Owner, Produktägare, Head of Product) · Other |
+| Q3 | "What level?" | Junior · Mid-level · Senior · Lead/Principal · Manager/Head of · Director+ |
+| Q4 | "Where can you work?" | Stockholm · Göteborg · Malmö · Uppsala · Remote anywhere in Sweden · Other city (type it) |
+| Q5 | "How do you feel about office time?" | Remote only · Hybrid is great · On-site is fine · No preference |
+| Q6 | "Any must-haves?" | Permanent position (tillsvidare) · Full-time · English-speaking workplace · Salary above a level (type it) · None |
+| Q7 | "Any deal-breakers?" | Consulting/staffing firms · Public sector · Travel-heavy roles · Fixed-term/temporary · Specific industries (type them) · None |
+| Q8 | "Anything you'd love to have?" | Industries you're drawn to (type them) · Small company/startup · Large established company · Tech-heavy product · None |
+| Q9 | "Last one: paste your CV or LinkedIn summary, or describe your background in a few sentences." | Free text only. Offer "Skip for now". |
+
+After Q9, show a **short summary** (five lines at most) of what you'll save, and ask "Look right?" with the
+options **Yes, save it** and **Change something**.
+
+---
+
 ## Phase C: daily AI scoring
 
-Ask which subscription they have, then set up **one** of these.
+Don't ask which subscription they have if you can tell: if you are Claude, use the Claude option, and if you are
+ChatGPT or Codex, use the ChatGPT option. Then set up **one** of these.
 
 ### Claude Pro/Max: a scheduled routine (recommended; nothing to install)
 Routines run in Anthropic's cloud on the user's subscription.
