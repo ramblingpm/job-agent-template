@@ -18,7 +18,7 @@ concurrency:
 jobs:
   publish:
     # The template itself never runs; only your copy does
-    if: ${{ !github.event.repository.is_template }}
+    if: github.repository != 'ramblingpm/job-agent-template'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
