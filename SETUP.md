@@ -31,29 +31,45 @@ Pick the **first** path that matches what you can actually do:
 
 | You can… | Path |
 |---|---|
-| Run shell commands on the user's computer (Claude Code CLI or desktop, Codex CLI) | **Path A: you do almost everything** |
-| Only chat (claude.ai, ChatGPT), or you're in a cloud sandbox without the user's GitHub login | **Path B: you guide, the user clicks** |
+| Run shell commands, either on the user's computer (Claude Code, Codex CLI) **or in a cloud sandbox** (Claude Code on the web, Codex cloud) | **Path A: you do almost everything.** In a sandbox, the login in A1 still works through a one-time code you pass on to the user |
+| Only chat (claude.ai, ChatGPT), with no command execution | **Path B: you guide, the user clicks** |
 
-To check, try running `git --version`. If you can't run commands, use Path B.
+To check, try running `git --version`. If you can't run commands, use Path B. **Don't switch to Path B just
+because GitHub login looks broken; A1 handles that.**
 
 ---
 
-## Path A: you have a terminal
+## Path A: you can run commands
 
 ### A1. GitHub CLI and login
 1. Check `gh --version`. If it's missing, install it:
-   - macOS: `brew install gh` (if there's no Homebrew, switch to Path B)
+   - macOS: `brew install gh`
    - Windows: `winget install --id GitHub.cli`
-   - Linux: follow https://github.com/cli/cli#installation
-2. Check `gh auth status`.
-   - If they're **not logged in**, the user must log in interactively. Ask them to run this themselves
-     (in Claude Code they can type it with a leading `!`):
-     `gh auth login -h github.com -p https -w -s workflow`
-     Then they approve it in the browser.
-   - If they **are logged in** but the token scopes don't include `workflow`, ask them to run
+   - Linux or sandbox: `(type -p apt-get && sudo apt-get install -y gh) || conda install -y gh`, or follow
+     https://github.com/cli/cli#installation
+   - If installing fails, switch to Path B.
+2. **Ignore pre-set tokens.** Sandboxes often set `GH_TOKEN` or `GITHUB_TOKEN` to a token that only works for
+   the sandbox's own repository; `gh auth status` then reports *"Failed to log in … using token (GH_TOKEN)"* or an
+   invalid token. `gh` always prefers those variables over a real login, so **put `env -u GH_TOKEN -u GITHUB_TOKEN`
+   in front of every `gh` command in this guide**. Shell state may not carry over between your commands, so
+   repeat it every time. Below, `gh` stands for that whole prefix.
+3. Run `gh auth status`.
+   - **Logged in, with `workflow` in the token scopes**: go to step 4.
+   - **Not logged in**: start the browser login yourself **in the background**, with a 15-minute timeout and its
+     output sent to a file:
+     `env -u GH_TOKEN -u GITHUB_TOKEN gh auth login -h github.com -p https -w -s workflow </dev/null >gh-login.txt 2>&1`
+     After a few seconds, read `gh-login.txt`. It contains a one-time code like `ABCD-1234`. Tell the user:
+     *"Open https://github.com/login/device, enter code **ABCD-1234** and click Authorize. Tell me when it says
+     you're done."* Then wait until the background command exits and run `gh auth status` again.
+     If the user is at their own terminal, they can run the same command themselves instead
+     (in Claude Code, by typing it with a leading `!`).
+   - **Logged in, but `workflow` is missing from the scopes**: do the same with
      `gh auth refresh -h github.com -s workflow`. Without this scope, pushing the workflow files fails with
      *"refusing to allow an OAuth App to create or update workflow"*.
-3. Run `gh api user --jq .login` to get their GitHub username. You'll need it as `<user>` below.
+   - If no code appears, or login fails because the sandbox blocks github.com, switch to **Path B**. Tell the user
+     why in one sentence.
+4. Run `gh auth setup-git`, so that `git push` to the user's new repository uses this login.
+5. Run `gh api user --jq .login` to get their GitHub username. You'll need it as `<user>` below.
 
 ### A2. Create the private copy
 Ask: *"What should I call your repository? I'd suggest `my-job-agent`."* Then:
@@ -67,6 +83,8 @@ cd <name>
   `gh repo clone <user>/<name>`.
 - If you get *"Could not resolve to a Repository"*, the template isn't reachable from this account yet. Stop
   and tell the user.
+- **Sandbox only:** if you were started inside some other repository, create and clone the new one *next to it*,
+  not inside it.
 
 Confirm it's private: `gh repo view --json visibility --jq .visibility` should print `PRIVATE`.
 
@@ -102,6 +120,16 @@ git commit -m "Set up my profile"
 git push
 gh workflow run "Fetch jobs"
 ```
+**If `git push` is refused** (some sandboxes only allow pushes to their own repository), save each changed file
+through the API instead, which uses your `gh` login. This works for both new and existing files:
+```bash
+f=profile.md   # then repeat with f=config.yaml
+env -u GH_TOKEN -u GITHUB_TOKEN gh api -X PUT "repos/<user>/<name>/contents/$f" -f message="Set up my profile" \
+  -f content="$(base64 < $f | tr -d '\n')" \
+  -f sha="$(env -u GH_TOKEN -u GITHUB_TOKEN gh api "repos/<user>/<name>/contents/$f" --jq .sha 2>/dev/null)"
+```
+Use the same method for the scores file in A6. Afterwards, run `git pull` (or re-clone) to stay in sync.
+
 Wait about 10 seconds, then watch it:
 `gh run watch $(gh run list --workflow fetch.yml --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status`
 
