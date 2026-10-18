@@ -114,3 +114,13 @@ def test_suggest_keeps_only_occupation_and_skill_terms():
 
     assert [t["value"] for t in suggest_terms("sjuksköt", session=FakeSession())] == [
         "sjuksköterska", "sjuksköterskelegitimation"]
+
+
+def test_run_report_counts_and_lists(cfg, jobs):
+    from jobagent.__main__ import run_report
+
+    kept = prefilter(jobs, cfg)
+    report = run_report(jobs, kept, 14)
+    assert report.startswith(f"Last 14 days: {len(jobs)} ads found, {len(kept)} kept, {len(jobs) - len(kept)} dropped")
+    assert "Senior Product Manager — Exempel AB (Stockholm)" in report.split("DROPPED")[0]
+    assert "Product Marketing Manager" in report.split("DROPPED")[1]

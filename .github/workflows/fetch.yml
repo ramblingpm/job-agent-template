@@ -4,26 +4,35 @@ on:
   schedule:
     - cron: "0 5 * * *" # 07:00 Swedish summer time, 06:00 winter time
   workflow_dispatch:
+  # Called by sync.yml right after a new profile/config arrives, with a longer look-back
+  workflow_call:
+    inputs:
+      days:
+        type: string
+        default: ""
 
 permissions:
   contents: write
   issues: write
 
-concurrency:
-  group: job-agent-main
-  cancel-in-progress: false
-
 jobs:
   fetch:
     # The template itself never runs; only your copy does
     if: github.repository != 'ramblingpm/job-agent-template'
+    # Job-level (not workflow-level) so sync.yml can call this workflow without waiting on itself
+    concurrency:
+      group: job-agent-main
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
       HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
+      # When called from sync.yml (a push, maybe on an AI's branch), use main; otherwise the default checkout
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.event.repository.default_branch || '' }}
 
       - uses: actions/setup-python@v5
         with:
@@ -35,7 +44,7 @@ jobs:
       - name: Fetch new ads
         id: fetch
         run: |
-          python -m jobagent fetch
+          python -m jobagent fetch ${{ inputs.days }}
           DATE=$(python -c "from jobagent.config import today; print(today())")
           echo "date=$DATE" >> "$GITHUB_OUTPUT"
           echo "has_inbox=$([ -f "data/inbox/$DATE.json" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"

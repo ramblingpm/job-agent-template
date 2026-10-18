@@ -10,7 +10,8 @@ Action) or ChatGPT Codex.
 
 ## Task 0: "Set me up" / "get this running"
 
-If the owner wants to create or finish setting up their own copy, follow **`SETUP.md`**. It is a step-by-step runbook.
+If the owner says "Set me up" or something similar, or `profile.md` still contains the template's example
+placeholders (text in *(e.g. …)* brackets), follow **`SETUP.md`**. It is a step-by-step runbook; start at Phase 0.
 
 ## Task 1: "Score today's jobs" (also "run the job search", "score my jobs")
 
@@ -44,7 +45,7 @@ If the owner wants to create or finish setting up their own copy, follow **`SETU
    - Write the summary and reasoning in the language `profile.md` is written in.
 6. Validate: `python -m jobagent validate <date>`. Fix any errors and validate again until it prints `ok`.
 7. Commit **only** the new `data/scored/<date>.json` files. Use the message `Score jobs <date>` and push.
-   Any branch is fine: the digest workflow picks up scores from any branch and copies them to `main`.
+   Any branch is fine: the `sync.yml` workflow picks up scores from any branch and copies them to `main`.
    If you can only open a pull request, do that; the owner doesn't need to merge it.
 8. Reply with a short summary: how many jobs you scored, and the top 3 with their scores.
 
@@ -93,4 +94,6 @@ pull request. Remind the owner that the repository should stay private.
 - `data/scored/<date>.json`: your output.
 - `data/seen.json`: ad IDs already fetched (used for deduplication). Don't edit it.
 - `jobagent/`: Python code for fetching, filtering, validation and issue rendering.
-- `.github/workflows/`: `fetch.yml` (daily fetch plus optional Claude scoring) and `digest.yml` (scores → issue).
+- `.github/workflows/`: `fetch.yml` (daily fetch plus optional Claude scoring) and `sync.yml` (copies profile, config and
+  scores from any branch to `main`, re-fetches after setup changes, and updates issues).
+- `data/last-run.md`: report from the latest fetch (counts, kept and dropped titles, and the `Config:` fingerprint).

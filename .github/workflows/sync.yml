@@ -1,0 +1,123 @@
+name: Sync from AI
+
+# AIs in cloud sandboxes (Claude Code on the web, Claude routines, Codex) can only push to their own branch.
+# This copies what they push (your profile, search settings and job scores) to main, so nobody has to merge
+# anything. A new profile or config also triggers a fetch right away, and its report lands in data/last-run.md.
+on:
+  push:
+    paths:
+      - "profile.md"
+      - "config.yaml"
+      - "data/scored/*.json"
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    # The template itself never runs; only your copy does
+    if: github.repository != 'ramblingpm/job-agent-template'
+    concurrency:
+      group: job-agent-main
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      setup_changed: ${{ steps.collect.outputs.setup_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect pushed files
+        id: collect
+        run: |
+          MAIN="${{ github.event.repository.default_branch }}"
+          BEFORE="${{ github.event.before }}"
+          if [ "${{ github.ref_name }}" = "$MAIN" ] && ! [[ "$BEFORE" =~ ^0+$ ]]; then
+            RANGE="$BEFORE..${{ github.sha }}"
+          else
+            RANGE="origin/$MAIN...${{ github.sha }}"
+          fi
+          mkdir -p /tmp/sync/data/scored
+          CHANGED=$(git diff --name-only --diff-filter=AM "$RANGE" -- profile.md config.yaml 'data/scored/*.json')
+          SETUP=false
+          for f in $CHANGED; do
+            # Only exact, known paths: file names end up in shell commands below
+            if [[ "$f" == "profile.md" || "$f" == "config.yaml" ]]; then
+              cp "$f" /tmp/sync/ && SETUP=true
+            elif [[ "$f" =~ ^data/scored/[0-9]{4}-[0-9]{2}-[0-9]{2}\.json$ ]]; then
+              cp "$f" /tmp/sync/data/scored/
+            fi
+          done
+          echo "dates=$(ls /tmp/sync/data/scored | sed 's/\.json$//' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          echo "setup_changed=$SETUP" >> "$GITHUB_OUTPUT"
+          echo "main=$MAIN" >> "$GITHUB_OUTPUT"
+
+      - name: Switch to main
+        run: |
+          git checkout "${{ steps.collect.outputs.main }}"
+          git pull --ff-only
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Validate and copy to main
+        id: apply
+        run: |
+          pip install -r requirements.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          [ -f /tmp/sync/profile.md ] && cp /tmp/sync/profile.md profile.md
+          if [ -f /tmp/sync/config.yaml ]; then
+            cp config.yaml /tmp/config.previous.yaml
+            cp /tmp/sync/config.yaml config.yaml
+            if ! ERR=$(python -c "from jobagent.config import load_config; load_config()" 2>&1); then
+              # Keep the working config on main and tell the AI what's wrong, through git
+              cp /tmp/config.previous.yaml config.yaml
+              {
+                echo "Run: $(TZ=Europe/Stockholm date -Iseconds)"
+                echo "Config: $(sha256sum /tmp/sync/config.yaml | cut -c1-12)"
+                echo ""
+                echo "ERROR: the pushed config.yaml was NOT applied because it could not be read:"
+                echo "$ERR" | tail -n 5
+              } > data/last-run.md
+              echo "config_failed=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+          for DATE in ${{ steps.collect.outputs.dates }}; do
+            cp "/tmp/sync/data/scored/$DATE.json" data/scored/
+            python -m jobagent validate "$DATE"
+          done
+
+          git add profile.md config.yaml data
+          git diff --cached --quiet || { git commit -m "Sync from ${{ github.ref_name }}" && git push; }
+
+      - name: Update issues with scores
+        if: steps.collect.outputs.dates != ''
+        run: |
+          for DATE in ${{ steps.collect.outputs.dates }}; do
+            bash scripts/post_issue.sh "$DATE"
+          done
+
+      - name: Fail visibly on a bad config
+        if: steps.apply.outputs.config_failed == 'true'
+        run: |
+          echo "::error::config.yaml could not be read; main keeps the previous config. See data/last-run.md."
+          exit 1
+
+  # A new profile or search: fetch right away, looking back 14 days so the first issue isn't empty
+  fetch:
+    needs: sync
+    if: needs.sync.outputs.setup_changed == 'true'
+    uses: ./.github/workflows/fetch.yml
+    with:
+      days: "14"
+    secrets: inherit

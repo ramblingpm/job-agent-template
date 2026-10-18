@@ -1,11 +1,12 @@
 """Command line used by the GitHub workflows and by AI agents.
 
-    python -m jobagent fetch               fetch new ads → data/inbox/<today>.json
+    python -m jobagent fetch [days]        fetch new ads → data/inbox/<today>.json, report → data/last-run.md
     python -m jobagent pending             list inbox dates that have no scores yet
     python -m jobagent validate <date>     check data/scored/<date>.json
     python -m jobagent render <date>       print the issue body for that date
     python -m jobagent preview [days]      dry run: what config.yaml would catch over the last N days (default 14)
     python -m jobagent suggest <word>...   real occupation/skill terms used in Platsbanken ads (for search terms)
+    python -m jobagent fingerprint         short hash of config.yaml (matches "Config:" in data/last-run.md)
 """
 
 import json
@@ -31,12 +32,44 @@ def _write(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def cmd_fetch():
-    from datetime import date, timedelta
+def _place(job):
+    return job["municipality"] or job["region"] or "?"
+
+
+def run_report(found, kept, days):
+    """Plain-text summary of one search, shared by `preview` (printed) and `fetch` (saved for remote AIs)."""
+    kept_ids = {j["id"] for j in kept}
+    dropped = [j for j in found if j["id"] not in kept_ids]
+    lines = [
+        f"Last {days} days: {len(found)} ads found, {len(kept)} kept, {len(dropped)} dropped by filters",
+        f"(about {len(kept) / int(days):.1f} new jobs per day)",
+        "",
+        "KEPT:",
+        *[f"  {j['keyword_score']:>3}  {j['title']} — {j['company']} ({_place(j)})" for j in kept],
+        "",
+        "DROPPED (first 25):",
+        *[f"       {j['title']} — {j['company']} ({_place(j)})" for j in dropped[:25]],
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def config_fingerprint():
+    """Lets an AI in a sandbox tell whether data/last-run.md was produced from the config it just pushed."""
+    import hashlib
+
+    return hashlib.sha256((c.ROOT / "config.yaml").read_bytes()).hexdigest()[:12]
+
+
+def cmd_fetch(days=None):
+    from datetime import date, datetime, timedelta
+    from zoneinfo import ZoneInfo
 
     cfg, day = c.load_config(), c.today()
+    if days:
+        cfg["search"]["published_within_days"] = int(days)
     seen = _read(c.SEEN, {})
-    fresh = [j for j in fetch_jobs(cfg, today=day) if j["id"] not in seen]
+    found = fetch_jobs(cfg, today=day)
+    fresh = [j for j in found if j["id"] not in seen]
     kept = prefilter(fresh, cfg)
     print(f"{len(fresh)} unseen ads, {len(kept)} kept after filters")
 
@@ -45,6 +78,12 @@ def cmd_fetch():
         seen[job["id"]] = day
     cutoff = (date.fromisoformat(day) - timedelta(days=SEEN_RETENTION_DAYS)).isoformat()
     _write(c.SEEN, {k: v for k, v in sorted(seen.items()) if v >= cutoff})
+
+    now = datetime.now(ZoneInfo("Europe/Stockholm")).isoformat(timespec="seconds")
+    report = run_report(fresh, kept, cfg["search"]["published_within_days"])
+    (c.DATA / "last-run.md").write_text(
+        f"Run: {now}\nConfig: {config_fingerprint()}\n(only ads not seen in earlier runs are counted)\n\n{report}",
+        encoding="utf-8")
 
     if kept:
         path = c.INBOX / f"{day}.json"
@@ -59,16 +98,11 @@ def cmd_preview(days="14"):
     cfg = c.load_config()
     cfg["search"]["published_within_days"] = int(days)
     found = fetch_jobs(cfg, today=c.today())
-    kept = prefilter(found, cfg)
-    kept_ids = {j["id"] for j in kept}
-    dropped = [j for j in found if j["id"] not in kept_ids]
-    print(f"\nLast {days} days: {len(found)} ads found, {len(kept)} kept, {len(dropped)} dropped by filters")
-    print(f"(about {len(kept) / int(days):.1f} new jobs per day)\n\nKEPT:")
-    for j in kept:
-        print(f"  {j['keyword_score']:>3}  {j['title']} — {j['company']} ({j['municipality'] or j['region'] or '?'})")
-    print("\nDROPPED (first 25):")
-    for j in dropped[:25]:
-        print(f"       {j['title']} — {j['company']} ({j['municipality'] or j['region'] or '?'})")
+    print("\n" + run_report(found, prefilter(found, cfg), days), end="")
+
+
+def cmd_fingerprint():
+    print(config_fingerprint())
 
 
 def cmd_suggest(*words):
@@ -118,10 +152,10 @@ def cmd_render(day):
 
 def main(argv):
     commands = {"fetch": cmd_fetch, "pending": cmd_pending, "validate": cmd_validate, "render": cmd_render,
-                "preview": cmd_preview, "suggest": cmd_suggest}
+                "preview": cmd_preview, "suggest": cmd_suggest, "fingerprint": cmd_fingerprint}
     if not argv or argv[0] not in commands:
         sys.exit(__doc__)
-    if argv[0] == "preview" and argv[1:] and not argv[1].isdigit():
+    if argv[0] in ("preview", "fetch") and argv[1:] and not argv[1].isdigit():
         sys.exit(f"expected a number of days, got {argv[1]!r}")
     if argv[0] in ("validate", "render") and argv[1:] and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", argv[1]):
         sys.exit(f"expected a date like 2026-10-18, got {argv[1]!r}")

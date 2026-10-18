@@ -22,18 +22,23 @@ Even without the AI step, you still get a daily issue with the new ads, ranked b
 
 ---
 
-## ⚡ The easy way: let your AI set it up
+## ⚡ The easy way: two clicks, then just chat
 
-Paste this into Claude (Claude Code or claude.ai) or ChatGPT:
+**1. [Create my private copy →](https://github.com/new?owner=@me&template_owner=ramblingpm&template_name=job-agent-template&name=my-job-agent&visibility=private)**
+Everything is filled in (name `my-job-agent`, **Private**), so just click **Create repository**.
 
+**2. Open [claude.ai/code](https://claude.ai/code), pick `my-job-agent`, and say:**
 ```
-Set up my job agent by following SETUP.md in https://github.com/ramblingpm/job-agent-template
+Set me up
 ```
+If `my-job-agent` isn't in the list, use the option there to give Claude access to more repositories.
 
-It will make your private copy, interview you about what you're looking for, test the search, start the daily
-run and connect AI scoring. It asks you to click or approve something only when it can't do it for you.
-With Claude Code or Codex on your computer it does almost everything itself; in a plain chat it walks you
-through each click.
+Claude interviews you about the job you want (any occupation), sets up the search, shows you what it finds,
+and scores your first batch of jobs. A few minutes later, your first ranked job list is in the **Issues** tab.
+
+<sub>Using Claude Code or Codex on your own computer instead? Say *"Set up my job agent by following SETUP.md in
+https://github.com/ramblingpm/job-agent-template"* and it does both steps for you. ChatGPT users: do step 1, then
+open the repository in [Codex](https://chatgpt.com/codex) and say "Set me up".</sub>
 
 ---
 
@@ -53,9 +58,10 @@ In your new repository, edit these two files (click the file, then the ✏️ pe
 Shortcut: once you've connected your AI in step 4, just ask it **"Help me set up my profile"**. It will interview
 you and update both files.
 
-### 3. Run it once
-Go to **Actions → Fetch jobs → Run workflow**. About a minute later you'll see an issue called
-**"Jobs YYYY-MM-DD"**. From now on it runs by itself every morning at 07:00.
+### 3. First run starts by itself
+Saving `profile.md` or `config.yaml` starts a search over the last two weeks. About two minutes later you'll see
+an issue called **"Jobs YYYY-MM-DD"**, and `data/last-run.md` shows what was found. From now on it runs by
+itself every morning at 07:00.
 
 ### 4. Connect your AI, picking one of the options below
 

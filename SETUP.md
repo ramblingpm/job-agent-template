@@ -1,7 +1,7 @@
 # SETUP.md: instructions for the AI assistant doing the setup
 
-> **Human?** You don't need to read this. Give your AI assistant this sentence:
-> *"Set up my job agent by following SETUP.md in https://github.com/ramblingpm/job-agent-template"*
+> **Human?** You don't need to read this. See "The easy way" in the README: create your copy with one click, then
+> tell Claude **"Set me up"**.
 
 ---
 
@@ -27,15 +27,71 @@ you can yourself, and when the user must act, give them one small, exact step at
 
 ## Phase 0: Work out where you're running
 
-Pick the **first** path that matches what you can actually do:
+Pick the **first** row that matches:
 
-| You can… | Path |
+| Situation | Path |
 |---|---|
-| Run shell commands, either on the user's computer (Claude Code, Codex CLI) **or in a cloud sandbox** (Claude Code on the web, Codex cloud) | **Path A: you do almost everything.** In a sandbox, the login in A1 still works through a one-time code you pass on to the user |
-| Only chat (claude.ai, ChatGPT), with no command execution | **Path B: you guide, the user clicks** |
+| You're in a **cloud sandbox**: Claude Code on the web, a Claude routine, or Codex cloud. Typical signs: the `CLAUDE_CODE_REMOTE` environment variable is set, or you were started inside a cloned GitHub repository and `gh` isn't logged in. | **Path S: the sandbox works through git** |
+| You can run commands on the **user's own computer** (Claude Code CLI or desktop, Codex CLI) | **Path A: you do almost everything** |
+| You can only chat (claude.ai, ChatGPT), with no command execution | **Path B: you guide, the user clicks** |
 
-To check, try running `git --version`. If you can't run commands, use Path B. **Don't switch to Path B just
-because GitHub login looks broken; A1 handles that.**
+To check whether you can run commands, try `git --version`.
+
+---
+
+## Path S: cloud sandbox (Claude Code on the web, routines, Codex cloud)
+
+Sandboxes can only reach the repository they were started on, usually only push to their own branch, and often
+can't reach the job API. **Don't try to log in to GitHub or create repositories from here.** That gets blocked
+(for example with HTTP 415). Instead, the repository's GitHub Actions do that work. `sync.yml` copies what you
+push on any branch to `main`, runs a fetch, and writes the result to `data/last-run.md`, which you read back
+with `git fetch`.
+
+### S1. Which repository are you in?
+Run `git remote get-url origin`.
+- **It's `ramblingpm/job-agent-template` (the template itself)**: you can't set up from here. Tell the user,
+  in these two steps:
+  1. *"Click this link to create your private copy, then click **Create repository**:"*
+     https://github.com/new?owner=@me&template_owner=ramblingpm&template_name=job-agent-template&name=my-job-agent&visibility=private
+  2. *"Then start a new Claude Code session on **my-job-agent** (at claude.ai/code, pick it in the repository
+     list; if it isn't listed, use the option to give Claude access to more repositories), and say **Set me up**."*
+
+  Then stop. Don't run the interview here, because the answers would be lost.
+- **It's the user's own copy:** continue with S2.
+
+### S2. Interview and save
+1. Run **[The interview](#the-interview)** below, steps 1–5. Skip the `suggest` and `preview` commands if they fail
+   with network errors; they'll be replaced by the report in S3.
+2. Commit `profile.md` and `config.yaml`, then push to your current branch (`git push -u origin HEAD`).
+   Remember the output of `python -m jobagent fingerprint`; if Python or the packages aren't available, use
+   `sha256sum config.yaml | cut -c1-12`.
+3. Tell the user: *"Saved. GitHub is now running your first search over the last two weeks. That takes about
+   two minutes."*
+
+### S3. Read the report and tune it
+Wait for the report: repeat `git fetch -q origin main && git show origin/main:data/last-run.md | head -3` every
+20 seconds, for up to 6 minutes, until the `Config:` line equals your fingerprint.
+- **The report starts with `ERROR`**: your `config.yaml` was rejected (main kept the previous one). Fix it and
+  push again.
+- **Otherwise**, summarize it for the user in plain words, for example *"Over the last two weeks this found 14
+  jobs, about 1 a day: [3–5 example titles]. It skipped things like [2–3 dropped titles]."* Ask whether that
+  looks right, with the options **Looks good** and **Adjust the search**. To adjust, edit `config.yaml` (see
+  the interview's step 5), push, and wait for the new fingerprint again.
+  Tuning doesn't fetch the same ads again: each run only counts ads it hasn't seen before.
+- **No matching report after 6 minutes**: tell the user to open the **Actions** tab of their repository and check
+  whether **Sync from AI** shows a red ✗. The usual fix: **Settings → Actions → General → Workflow permissions →
+  Read and write permissions → Save**, then ask you to push again.
+
+### S4. First scores
+1. Get the new ads: `git fetch -q origin main && git checkout origin/main -- data/inbox data/scored`.
+2. Do **Task 1 in `AGENTS.md`**, scoring every pending date, and push the scores to your branch. `sync.yml`
+   publishes them, so there's nothing to merge.
+3. Tell the user: *"Done! Open the **Issues** tab of my-job-agent: your first job list is there, ranked against
+   your profile. GitHub also emails you about new ones."*
+
+### S5. Daily scoring
+Continue with **Phase C** below. Claude can't create a routine from inside a sandbox, so give the user the click
+steps.
 
 ---
 
@@ -48,7 +104,7 @@ because GitHub login looks broken; A1 handles that.**
    - Linux or sandbox: `(type -p apt-get && sudo apt-get install -y gh) || conda install -y gh`, or follow
      https://github.com/cli/cli#installation
    - If installing fails, switch to Path B.
-2. **Ignore pre-set tokens.** Sandboxes often set `GH_TOKEN` or `GITHUB_TOKEN` to a token that only works for
+2. **Ignore pre-set tokens.** Some environments set `GH_TOKEN` or `GITHUB_TOKEN` to a token that only works for
    the sandbox's own repository; `gh auth status` then reports *"Failed to log in … using token (GH_TOKEN)"* or an
    invalid token. `gh` always prefers those variables over a real login, so **put `env -u GH_TOKEN -u GITHUB_TOKEN`
    in front of every `gh` command in this guide**. Shell state may not carry over between your commands, so
@@ -66,7 +122,7 @@ because GitHub login looks broken; A1 handles that.**
    - **Logged in, but `workflow` is missing from the scopes**: do the same with
      `gh auth refresh -h github.com -s workflow`. Without this scope, pushing the workflow files fails with
      *"refusing to allow an OAuth App to create or update workflow"*.
-   - If no code appears, or login fails because the sandbox blocks github.com, switch to **Path B**. Tell the user
+   - If no code appears, or the login fails (for example, a network block), switch to **Path B**. Tell the user
      why in one sentence.
 4. Run `gh auth setup-git`, so that `git push` to the user's new repository uses this login.
 5. Run `gh api user --jq .login` to get their GitHub username. You'll need it as `<user>` below.
@@ -110,33 +166,22 @@ On Windows, use `.venv\Scripts\python` instead of `.venv/bin/python`.
 git add profile.md config.yaml
 git commit -m "Set up my profile"
 git push
-gh workflow run "Fetch jobs"
 ```
-**If `git push` is refused** (some sandboxes only allow pushes to their own repository), save each changed file
-through the API instead, which uses your `gh` login. This works for both new and existing files:
-```bash
-f=profile.md   # then repeat with f=config.yaml
-env -u GH_TOKEN -u GITHUB_TOKEN gh api -X PUT "repos/<user>/<name>/contents/$f" -f message="Set up my profile" \
-  -f content="$(base64 < $f | tr -d '\n')" \
-  -f sha="$(env -u GH_TOKEN -u GITHUB_TOKEN gh api "repos/<user>/<name>/contents/$f" --jq .sha 2>/dev/null)"
-```
-Use the same method for the scores file in A6. Afterwards, run `git pull` (or re-clone) to stay in sync.
+Pushing these files starts the **Sync from AI** workflow automatically. It runs a first fetch over the last 14
+days, which takes about two minutes. Wait about 10 seconds, then watch it:
+`gh run watch $(gh run list --workflow sync.yml --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status`
 
-Wait about 10 seconds, then watch it:
-`gh run watch $(gh run list --workflow fetch.yml --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status`
-
-Then check the result with `gh api "repos/<user>/<name>/issues?labels=jobs" --jq '.[].html_url'`.
-If it's empty, wait 15 seconds and try once more: new issues sometimes take a moment to appear.
-- **There's an issue**: it's working. Then `git pull` to get the fetched inbox.
-- **The run succeeded but there's no issue**: no new jobs matched today. That's fine, and it will run again
-  tomorrow at 07:00.
+Then run `git pull` and read `data/last-run.md`. It contains how many ads were found and kept, and the titles.
+Summarize it for the user, and check `gh api "repos/<user>/<name>/issues?labels=jobs" --jq '.[].html_url'` for
+the issue (if it's empty, try again after 15 seconds).
+- **Kept 0 jobs**: broaden the search (A4) and push again.
 - **The run failed** on a push or permission error: run
   `gh api -X PUT repos/<user>/<name>/actions/permissions/workflow -f default_workflow_permissions=write`,
-  then re-run the workflow. For anything else, read the log with `gh run view --log-failed` and fix the problem.
+  then push again. For anything else, read the log with `gh run view --log-failed` and fix the problem.
 
 ### A6. First scoring (shows the user the payoff)
-Run `git pull`, then do **Task 1 in `AGENTS.md`** yourself and push the result. About a minute later the issue
-updates with AI scores and gets a "Scores are in" comment. Show the user the issue link from A5.
+Do **Task 1 in `AGENTS.md`** yourself and push the result. About a minute later the issue updates with AI scores
+and gets a "Scores are in" comment. Show the user the issue link from A5.
 
 ### A7. Daily scoring: go to Phase C.
 
@@ -154,11 +199,11 @@ Give the user **one step at a time** and wait until they say it's done. Use exac
    `profile.md`, and separately of `config.yaml`, each in a single code block.
 3. **Paste them in.** In their repository, click `profile.md` → ✏️ (Edit) → select all → paste →
    **Commit changes…** → **Commit changes**. Then do the same for `config.yaml`.
-4. **First run.** Have them open the **Actions** tab, then **Fetch jobs** → **Run workflow** → **Run workflow**.
-   After about a minute there's a green tick, and the **Issues** tab has "Jobs YYYY-MM-DD". (If no jobs matched
-   today, there's no issue; that's fine.)
-   If it fails with a permission error, have them go to **Settings → Actions → General → Workflow permissions**,
-   choose **Read and write permissions**, click **Save**, and run it again.
+4. **First run.** Saving the files starts the first search automatically, looking back two weeks. After about
+   two minutes the **Issues** tab has "Jobs YYYY-MM-DD". If they open `data/last-run.md`, they can see what was
+   found and kept. (If nothing matched, there's no issue; then broaden `config.yaml` together.)
+   If the **Actions** tab shows a red ✗ with a permission error, have them go to **Settings → Actions → General →
+   Workflow permissions**, choose **Read and write permissions**, click **Save**, and save a file again.
 5. Continue with **Phase C**.
 
 You can't tune the search with a dry run here. If there are too few or too many results after a few days,
