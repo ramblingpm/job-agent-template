@@ -164,4 +164,4 @@ def test_broadened_config_picks_up_previously_dropped_ads(tmp_path, monkeypatch,
     cli.cmd_fetch()
     ids = [j["id"] for j in cli._read(c.INBOX / "2026-10-18.json")["jobs"]]
     assert "1004" in ids and len(ids) == len(set(ids))  # picked up now, nothing duplicated
-    assert "New this run: 1 kept" in (c.DATA / "last-run.md").read_text()
+    assert "New this run: 2 kept" in (c.DATA / "last-run.md").read_text()  # 1004 Göteborg + 1003 remote Umeå
